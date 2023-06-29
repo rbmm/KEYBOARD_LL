@@ -25,7 +25,7 @@ void DoInject(HANDLE hProcess, PWSTR lpLibFileName, SIZE_T cb)
 	}
 }
 
-BOOL IsHighIntegrity(HANDLE hProcess)
+BOOL IsNotLowIntegrity(HANDLE hProcess)
 {
 	BOOL f = FALSE;
 
@@ -42,7 +42,7 @@ BOOL IsHighIntegrity(HANDLE hProcess)
 		{
 			if (1 == *RtlSubAuthorityCountSid(tml.Label.Sid))
 			{
-				f = SECURITY_MANDATORY_HIGH_RID <= *RtlSubAuthoritySid(tml.Label.Sid, 0);
+				f = SECURITY_MANDATORY_MEDIUM_RID <= *RtlSubAuthoritySid(tml.Label.Sid, 0);
 			}
 		}
 	}
@@ -50,7 +50,7 @@ BOOL IsHighIntegrity(HANDLE hProcess)
 	return f;
 }
 
-void InjectAll(BOOL fToAll, PWSTR lpLibFileName, SIZE_T cbLibFileName)
+void InjectAll(PWSTR lpLibFileName, SIZE_T cbLibFileName)
 {
 	BOOLEAN b;
 	RtlAdjustPrivilege(SE_DEBUG_PRIVILEGE, TRUE, FALSE, &b);
@@ -90,7 +90,7 @@ void InjectAll(BOOL fToAll, PWSTR lpLibFileName, SIZE_T cbLibFileName)
 								ebi.IsWow64Process &&
 								!ebi.IsFrozen &&
 								!ebi.IsStronglyNamed &&
-								(fToAll || IsHighIntegrity(hProcess)))
+								IsNotLowIntegrity(hProcess))
 							{
 								DbgPrint("\t>> %x %wZ\r\n", cid.UniqueProcess, &pspi->ImageName);
 								DoInject(hProcess, lpLibFileName, cbLibFileName);
@@ -147,7 +147,7 @@ void WINAPI ep(HANDLE /*hThread*/)
 					}
 					else
 					{
-						InjectAll(wcschr(GetCommandLine(), '*') != 0, psz, (1 + cch) * sizeof(WCHAR));
+						InjectAll(psz, (1 + cch) * sizeof(WCHAR));
 
 						MessageBoxW(0, L"Hook Active", SF, MB_ICONINFORMATION);
 					}
